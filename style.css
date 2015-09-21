@@ -1,0 +1,95 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.line-h {
+    position: absolute;
+    background: #000;
+    top: 50%;
+    left: 0;
+    -webkit-transform: translate(0, -50%);
+    height: 2px;
+    width: 50px;
+}
+
+.line-h-l {
+    position: absolute;
+    background: #000;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(0, -50%);
+    height: 2px;
+    width: 25px;
+}
+
+.line-h-r {
+    position: absolute;
+    background: #000;
+    top: 50%;
+    left: 0;
+    -webkit-transform: translate(0, -50%);
+    height: 2px;
+    width: 25px;
+}
+
+.line-v {
+    position: absolute;
+    background: #000;
+    top: 0;
+    left: 50%;
+    -webkit-transform: translate(-50%, 0);
+    height: 50px;
+    width: 2px;
+}
+
+.line-v-t {
+    position: absolute;
+    background: #000;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, 0);
+    height: 50px;
+    width: 2px;
+}
+
+.line-v-b {
+    position: absolute;
+    background: #000;
+    top: 0;
+    left: 50%;
+    -webkit-transform: translate(-50%, 0);
+    height: 25px;
+    width: 2px;
+}
+
+.stone {
+    position: absolute;
+    height: 0;
+    width: 0;
+}
+
+.stone-b {
+    position: absolute;
+    background: #000;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+}
+
+.stone-w {
+    position: absolute;
+    background: #FFF;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    height: 40px;
+    width: 40px;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 2px solid #000;
+    border-radius: 50%;
+}
