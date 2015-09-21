@@ -1,2 +1,0 @@
-基于ionic的围棋android应用demo
-
