@@ -9,8 +9,8 @@
     top: 50%;
     left: 0;
     -webkit-transform: translate(0, -50%);
-    height: 2px;
-    width: 50px;
+    height: 1px;
+    width: 40px;
 }
 
 .line-h-l {
@@ -19,8 +19,7 @@
     top: 50%;
     left: 50%;
     -webkit-transform: translate(0, -50%);
-    height: 2px;
-    width: 25px;
+    height: 1px;
 }
 
 .line-h-r {
@@ -29,8 +28,7 @@
     top: 50%;
     left: 0;
     -webkit-transform: translate(0, -50%);
-    height: 2px;
-    width: 25px;
+    height: 1px;
 }
 
 .line-v {
@@ -39,8 +37,7 @@
     top: 0;
     left: 50%;
     -webkit-transform: translate(-50%, 0);
-    height: 50px;
-    width: 2px;
+    width: 1px;
 }
 
 .line-v-t {
@@ -49,8 +46,7 @@
     top: 50%;
     left: 50%;
     -webkit-transform: translate(-50%, 0);
-    height: 50px;
-    width: 2px;
+    width: 1px;
 }
 
 .line-v-b {
@@ -59,8 +55,18 @@
     top: 0;
     left: 50%;
     -webkit-transform: translate(-50%, 0);
-    height: 25px;
-    width: 2px;
+    width: 1px;
+}
+
+.star {
+    position: absolute;
+    background: #000;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
 }
 
 .stone {
@@ -75,8 +81,6 @@
     top: 50%;
     left: 50%;
     -webkit-transform: translate(-50%, -50%);
-    height: 40px;
-    width: 40px;
     border-radius: 50%;
 }
 
@@ -86,10 +90,8 @@
     top: 50%;
     left: 50%;
     -webkit-transform: translate(-50%, -50%);
-    height: 40px;
-    width: 40px;
     box-sizing: border-box;
     -webkit-box-sizing: border-box;
-    border: 2px solid #000;
+    border: 1px solid #000;
     border-radius: 50%;
 }

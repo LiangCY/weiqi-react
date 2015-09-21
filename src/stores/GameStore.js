@@ -2,7 +2,7 @@ var Reflux = require('reflux');
 var Weiqi = require('weiqi');
 var GameActions = require('../actions/GameActions');
 
-var game = Weiqi.createGame(9);
+var game = Weiqi.createGame(19);
 
 var GameStore = Reflux.createStore({
 

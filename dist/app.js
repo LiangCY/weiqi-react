@@ -26883,6 +26883,8 @@ module.exports = GameApp;
 var React = require('react');
 var Weiqi = require('weiqi');
 
+var width = 30;
+
 var Grid = React.createClass({displayName: "Grid",
 
     handlePlay: function (x, y, event) {
@@ -26896,10 +26898,10 @@ var Grid = React.createClass({displayName: "Grid",
 
         var style = {
             position: 'absolute',
-            width: '50px',
-            height: '50px',
-            top: grid.x * 50 + 'px',
-            left: grid.y * 50 + 'px',
+            width: width + 'px',
+            height: width + 'px',
+            top: grid.x * width + 'px',
+            left: grid.y * width + 'px',
             'text-decoration': 'none'
         };
 
@@ -26907,38 +26909,85 @@ var Grid = React.createClass({displayName: "Grid",
         var lineVClass;
         var stoneClass;
 
+        var lineHStyle;
+        var lineVStyle;
+        var stoneStyle;
+
         if (grid.x == 0) {
             lineVClass = 'line-v-t';
-        } else if (grid.x == 8) {
+            lineVStyle = {
+                height: width / 2 + 'px'
+            };
+        } else if (grid.x == 18) {
             lineVClass = 'line-v-b';
+            lineVStyle = {
+                height: width / 2 + 'px'
+            };
         } else {
             lineVClass = 'line-v';
+            lineVStyle = {
+                height: width + 'px'
+            };
         }
 
         if (grid.y == 0) {
-            lineHClass = 'line-h-l'
-        } else if (grid.y == 8) {
-            lineHClass = 'line-h-r'
+            lineHClass = 'line-h-l';
+            lineHStyle = {
+                width: width / 2 + 'px'
+            };
+        } else if (grid.y == 18) {
+            lineHClass = 'line-h-r';
+            lineHStyle = {
+                width: width / 2 + 'px'
+            };
         } else {
-            lineHClass = 'line-h'
+            lineHClass = 'line-h';
+            lineHStyle = {
+                width: width + 'px'
+            };
         }
 
         if (grid.color == Weiqi.BLACK) {
-            stoneClass = 'stone-b'
+            stoneClass = 'stone-b';
+            stoneStyle = {
+                height: parseInt(width * 0.8) + 'px',
+                width: parseInt(width * 0.8) + 'px'
+            };
         } else if (grid.color == Weiqi.WHITE) {
-            stoneClass = 'stone-w'
+            stoneClass = 'stone-w';
+            stoneStyle = {
+                height: parseInt(width * 0.8) + 'px',
+                width: parseInt(width * 0.8) + 'px'
+            };
         } else {
             stoneClass = 'stone'
         }
 
-        return (
-            React.createElement("div", {href: "#", style: style, 
-                 onClick: this.handlePlay.bind(null, grid.x, grid.y)}, 
-                React.createElement("div", {className: lineHClass}), 
-                React.createElement("div", {className: lineVClass}), 
-                React.createElement("div", {className: stoneClass})
+        if (
+            (grid.x == 3 && (grid.y == 3 || grid.y == 9 || grid.y == 15)) ||
+            (grid.x == 9 && (grid.y == 3 || grid.y == 9 || grid.y == 15)) ||
+            (grid.x == 15 && (grid.y == 3 || grid.y == 9 || grid.y == 15))
+        ) {
+            return (
+                React.createElement("div", {href: "#", style: style, 
+                     onClick: this.handlePlay.bind(null, grid.x, grid.y)}, 
+                    React.createElement("div", {className: lineHClass, style: lineHStyle}), 
+                    React.createElement("div", {className: lineVClass, style: lineVStyle}), 
+                    React.createElement("div", {className: 'star'}), 
+                    React.createElement("div", {className: stoneClass, style: stoneStyle})
+                )
             )
-        )
+        } else {
+            return (
+                React.createElement("div", {href: "#", style: style, 
+                     onClick: this.handlePlay.bind(null, grid.x, grid.y)}, 
+                    React.createElement("div", {className: lineHClass, style: lineHStyle}), 
+                    React.createElement("div", {className: lineVClass, style: lineVStyle}), 
+                    React.createElement("div", {className: stoneClass, style: stoneStyle})
+                )
+            )
+        }
+
     }
 });
 
@@ -26949,7 +26998,7 @@ var Reflux = require('reflux');
 var Weiqi = require('weiqi');
 var GameActions = require('../actions/GameActions');
 
-var game = Weiqi.createGame(9);
+var game = Weiqi.createGame(19);
 
 var GameStore = Reflux.createStore({
 
