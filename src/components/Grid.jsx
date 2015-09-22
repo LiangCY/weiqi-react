@@ -1,7 +1,7 @@
 var React = require('react');
 var Weiqi = require('weiqi');
 
-var width = 30;
+var width = 48;
 
 var Grid = React.createClass({
 
