@@ -26902,7 +26902,7 @@ var Grid = React.createClass({displayName: "Grid",
             height: width + 'px',
             top: grid.x * width + 'px',
             left: grid.y * width + 'px',
-            'text-decoration': 'none'
+            textDecoration: 'none'
         };
 
         var lineHClass;
