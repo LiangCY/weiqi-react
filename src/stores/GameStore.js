@@ -1,5 +1,5 @@
 var Reflux = require('reflux');
-var Weiqi = require('weiqi');
+var Weiqi = require('../../weiqi/dist');
 var GameActions = require('../actions/GameActions');
 
 var game = Weiqi.createGame(19);

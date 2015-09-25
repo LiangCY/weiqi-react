@@ -26380,440 +26380,6 @@ module.exports = function(listenables){
 
 
 },{"reflux-core/lib/ListenerMethods":161}],177:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-var createGame = require("./lib/game").createGame;
-
-var createBoard = require("./lib/board").createBoard;
-
-var Constants = _interopRequire(require("./lib/constants"));
-
-module.exports = {
-  createGame: createGame,
-  createBoard: createBoard,
-  EMPTY: Constants.EMPTY,
-  BLACK: Constants.BLACK,
-  WHITE: Constants.WHITE
-};
-
-},{"./lib/board":178,"./lib/constants":179,"./lib/game":180}],178:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _get = function get(object, property, receiver) { var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc && desc.writable) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
-
-var _inherits = function (subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; };
-
-var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Immutable = _interopRequire(require("immutable"));
-
-var opponentColor = require("./util").opponentColor;
-
-var Constants = _interopRequire(require("./constants"));
-
-var Point = (function (_Immutable$Record) {
-  function Point(i, j) {
-    _classCallCheck(this, Point);
-
-    _get(Object.getPrototypeOf(Point.prototype), "constructor", this).call(this, { i: i, j: j });
-  }
-
-  _inherits(Point, _Immutable$Record);
-
-  return Point;
-})(Immutable.Record({ i: 0, j: 0 }));
-
-var Group = (function (_Immutable$Record2) {
-  function Group() {
-    _classCallCheck(this, Group);
-
-    if (_Immutable$Record2 != null) {
-      _Immutable$Record2.apply(this, arguments);
-    }
-  }
-
-  _inherits(Group, _Immutable$Record2);
-
-  _createClass(Group, {
-    isDead: {
-      value: function isDead() {
-        return this.getLiberties().isEmpty();
-      }
-    },
-    getLiberties: {
-      value: function getLiberties() {
-        return this.surrounding.filter(function (color) {
-          return color === Constants.EMPTY;
-        });
-      }
-    }
-  });
-
-  return Group;
-})(Immutable.Record({ stones: null, surrounding: null }));
-
-var inBounds = function (size, point) {
-  return point.i >= 0 && point.i < size && point.j >= 0 && point.j < size;
-};
-
-var getStone = function (stones, coords) {
-  return stones.get(coords, Constants.EMPTY);
-};
-
-var replaceStone = function (stones, coords, value) {
-  if (value === Constants.EMPTY) return removeStone(coords);else return stones.set(coords, value);
-};
-
-var removeStone = function (stones, coords) {
-  return stones.remove(coords);
-};
-
-var deltas = Immutable.List.of(new Point(-1, 0), new Point(0, 1), new Point(1, 0), new Point(0, -1));
-
-/*
- * Given a board position, returns a list of [i,j] coordinates representing
- * orthagonally adjacent intersections
- */
-var getAdjacentIntersections = function (size, coords) {
-  var addPair = function (vec) {
-    return new Point(vec.i + coords.i, vec.j + coords.j);
-  };
-  return deltas.map(addPair).filter(function (coord) {
-    return inBounds(size, coord);
-  });
-};
-
-var allPositions = function (size) {
-  var range = Immutable.Range(0, size);
-  return range.flatMap(function (i) {
-    return range.map(function (j) {
-      return new Point(i, j);
-    });
-  });
-};
-
-/*
- * Performs a breadth-first search about an (i,j) position to find recursively
- * orthagonally adjacent stones of the same color (stones with which it shares
- * liberties).
- */
-var getGroup = function (stones, size, coords) {
-  var color = getStone(stones, coords);
-
-  var search = function (visited, queue, surrounding) {
-    if (queue.isEmpty()) return { visited: visited, surrounding: surrounding };
-
-    var stone = queue.first();
-    queue = queue.shift();
-
-    if (visited.has(stone)) return search(visited, queue, surrounding);
-
-    var neighbors = getAdjacentIntersections(size, stone);
-    neighbors.forEach(function (n) {
-      var state = getStone(stones, n);
-      if (state === color) queue = queue.push(n);else surrounding = surrounding.set(n, state);
-    });
-
-    visited = visited.add(stone);
-    return search(visited, queue, surrounding);
-  };
-
-  var _search = search(Immutable.Set(), Immutable.List([coords]), Immutable.Map());
-
-  var visited = _search.visited;
-  var surrounding = _search.surrounding;
-
-  return new Group({ stones: visited,
-    surrounding: surrounding });
-};
-
-var createEmptyGrid = (function () {
-  var createGrid = function (size) {
-    return Immutable.Repeat(Immutable.Repeat(Constants.EMPTY, size).toList(), size).toList();
-  };
-
-  var cache = {};
-  return function (size) {
-    return cache[size] || (cache[size] = createGrid(size));
-  };
-})();
-
-var Board = (function () {
-  function Board(size, stones) {
-    _classCallCheck(this, Board);
-
-    if (typeof size === "undefined" || size < 0) throw "Size must be an integer greater than zero";
-
-    if (typeof stones === "undefined") stones = Immutable.Map();
-
-    this.size = size;
-    this.stones = stones;
-  }
-
-  _createClass(Board, {
-    getStone: {
-      value: (function (_getStone) {
-        var _getStoneWrapper = function getStone(_x) {
-          return _getStone.apply(this, arguments);
-        };
-
-        _getStoneWrapper.toString = function () {
-          return _getStone.toString();
-        };
-
-        return _getStoneWrapper;
-      })(function (coords) {
-        return getStone(this.stones, new Point(coords[0], coords[1]));
-      })
-    },
-    getSize: {
-      value: function getSize() {
-        return this.size;
-      }
-    },
-    toArray: {
-      value: function toArray() {
-        return this.getIntersections().toJS();
-      }
-    },
-    getIntersections: {
-      value: function getIntersections() {
-        var _this = this;
-
-        var mergeStones = function (map) {
-          return _this.stones.reduce(function (board, color, point) {
-            return board.setIn([point.i, point.j], color);
-          }, map);
-        };
-        return createEmptyGrid(this.size).withMutations(mergeStones);
-      }
-    },
-    play: {
-      value: function play(color, coords) {
-        var _this = this;
-
-        coords = new Point(coords[0], coords[1]);
-
-        if (!inBounds(this.size, coords)) throw "Intersection out of bounds";
-
-        if (getStone(this.stones, coords) != Constants.EMPTY) throw "Intersection occupied by existing stone";
-
-        var newBoard = replaceStone(this.stones, coords, color);
-        var neighbors = getAdjacentIntersections(this.size, coords);
-        var neighborColors = Immutable.Map(neighbors.zipWith(function (n) {
-          return [n, getStone(newBoard, n)];
-        }));
-        var isOpponentColor = function (stoneColor, _) {
-          return stoneColor === opponentColor(color);
-        };
-        var captured = neighborColors.filter(isOpponentColor).map(function (val, coord) {
-          return getGroup(newBoard, _this.size, coord);
-        }).valueSeq().filter(function (g) {
-          return g.isDead();
-        });
-
-        // detect suicide
-        var newGroup = getGroup(newBoard, this.size, coords);
-        if (captured.isEmpty() && newGroup.isDead()) captured = Immutable.List([newGroup]);
-
-        newBoard = captured.flatMap(function (g) {
-          return g.get("stones");
-        }).reduce(function (acc, stone) {
-          return removeStone(acc, stone);
-        }, newBoard);
-
-        return createBoard(this.size, newBoard);
-      }
-    },
-    areaScore: {
-      value: function areaScore() {
-        var _this = this;
-
-        var positions = allPositions(this.size);
-        var visited = Immutable.Set();
-        var score = {};
-        score[Constants.BLACK] = 0;
-        score[Constants.WHITE] = 0;
-
-        positions.forEach(function (coords) {
-          if (visited.has(coords)) return;
-
-          var state = getStone(_this.stones, coords);
-          var group = getGroup(_this.stones, _this.size, coords);
-          var groupStones = group.get("stones");
-          var surroundingColors = group.get("surrounding").valueSeq().toSet();
-
-          if (state === Constants.EMPTY && surroundingColors.size === 1) score[surroundingColors.first()] += groupStones.size;else score[state] += groupStones.size;
-
-          visited = visited.union(groupStones);
-        });
-
-        return score;
-      }
-    }
-  });
-
-  return Board;
-})();
-
-var createBoard = function (size, stones) {
-  return new Board(size, stones);
-};
-exports.createBoard = createBoard;
-
-},{"./constants":179,"./util":181,"immutable":2}],179:[function(require,module,exports){
-/*
- * Constants for intersection states
- */
-"use strict";
-
-module.exports = {
-  EMPTY: ".",
-  BLACK: "x",
-  WHITE: "o"
-};
-
-},{}],180:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-var _createClass = (function () { function defineProperties(target, props) { for (var key in props) { var prop = props[key]; prop.configurable = true; if (prop.value) prop.writable = true; } Object.defineProperties(target, props); } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } };
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Immutable = _interopRequire(require("immutable"));
-
-var createBoard = require("./board").createBoard;
-
-var opponentColor = require("./util").opponentColor;
-
-var Constants = _interopRequire(require("./constants"));
-
-var Game = (function () {
-  function Game(boardSize, values) {
-    _classCallCheck(this, Game);
-
-    if (typeof values !== "undefined") {
-      this.currentColor = values.currentColor;
-      this.consectutivePasses = values.consectutivePasses;
-      this.history = values.history;
-      this.board = values.board;
-    } else {
-      this.currentColor = Constants.BLACK;
-      this.consectutivePasses = 0;
-      this.board = createBoard(boardSize);
-      this.history = Immutable.Set([this.board.stones]);
-    }
-  }
-
-  _createClass(Game, {
-    isOver: {
-      value: function isOver() {
-        return this.consectutivePasses >= 2;
-      }
-    },
-    getCurrentPlayer: {
-      value: function getCurrentPlayer() {
-        return this.currentColor;
-      }
-    },
-    getBoard: {
-      value: function getBoard() {
-        return this.board;
-      }
-    },
-    play: {
-      value: function play(player, coords) {
-        var _this = this;
-
-        var inHistory = function (otherBoard) {
-          return _this.history.has(otherBoard.stones);
-        };
-
-        if (this.isOver()) throw "Game is already over";
-
-        if (player != this.currentColor) throw "Not player's turn";
-
-        var newBoard = this.board.play(this.currentColor, coords);
-        if (inHistory(newBoard)) throw "Violation of Ko";
-
-        return createGame(this.boardSize, {
-          currentColor: opponentColor(this.currentColor),
-          consectutivePasses: 0,
-          board: newBoard,
-          history: this.history.add(newBoard.stones)
-        });
-      }
-    },
-    pass: {
-      value: function pass(player) {
-        if (this.isOver()) throw "Game is already over";
-
-        if (player != this.currentColor) throw "Not player's turn";
-
-        return createGame(this.boardSize, {
-          currentColor: opponentColor(this.currentColor),
-          consectutivePasses: this.consectutivePasses + 1,
-          board: this.board,
-          history: this.history
-        });
-      }
-    },
-    areaScore: {
-
-      /*
-       * Returns Black - White
-       */
-
-      value: function areaScore(komi) {
-        if (typeof komi === "undefined") komi = 0;
-
-        var boardScore = this.board.areaScore();
-        return boardScore[Constants.BLACK] - (boardScore[Constants.WHITE] + komi);
-      }
-    }
-  });
-
-  return Game;
-})();
-
-var createGame = function (boardSize, values) {
-  return new Game(boardSize, values);
-};
-exports.createGame = createGame;
-
-},{"./board":178,"./constants":179,"./util":181,"immutable":2}],181:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var Constants = _interopRequire(require("./constants"));
-
-var opponentColor = function (color) {
-  return color == Constants.BLACK ? Constants.WHITE : Constants.BLACK;
-};
-exports.opponentColor = opponentColor;
-
-},{"./constants":179}],182:[function(require,module,exports){
 var Reflux = require('reflux');
 
 var GameActions = Reflux.createActions([
@@ -26822,13 +26388,13 @@ var GameActions = Reflux.createActions([
 
 module.exports = GameActions;
 
-},{"reflux":174}],183:[function(require,module,exports){
+},{"reflux":174}],178:[function(require,module,exports){
 var React = require('react');
 var GameApp = require('./components/GameApp.jsx');
 
 React.render(React.createElement(GameApp, null), document.body);
 
-},{"./components/GameApp.jsx":184,"react":157}],184:[function(require,module,exports){
+},{"./components/GameApp.jsx":179,"react":157}],179:[function(require,module,exports){
 var React = require('react');
 var Grid = require('./Grid.jsx');
 var GameStore = require('../stores/GameStore');
@@ -26879,9 +26445,9 @@ var GameApp = React.createClass({displayName: "GameApp",
 
 module.exports = GameApp;
 
-},{"../actions/GameActions":182,"../stores/GameStore":186,"./Grid.jsx":185,"react":157}],185:[function(require,module,exports){
+},{"../actions/GameActions":177,"../stores/GameStore":181,"./Grid.jsx":180,"react":157}],180:[function(require,module,exports){
 var React = require('react');
-var Weiqi = require('weiqi');
+var Weiqi = require('../../weiqi/dist');
 
 var width = 48;
 
@@ -26993,9 +26559,9 @@ var Grid = React.createClass({displayName: "Grid",
 
 module.exports = Grid;
 
-},{"react":157,"weiqi":177}],186:[function(require,module,exports){
+},{"../../weiqi/dist":182,"react":157}],181:[function(require,module,exports){
 var Reflux = require('reflux');
-var Weiqi = require('weiqi');
+var Weiqi = require('../../weiqi/dist');
 var GameActions = require('../actions/GameActions');
 
 var game = Weiqi.createGame(19);
@@ -27021,4 +26587,465 @@ module.exports = GameStore;
 
 
 
-},{"../actions/GameActions":182,"reflux":174,"weiqi":177}]},{},[183])
+},{"../../weiqi/dist":182,"../actions/GameActions":177,"reflux":174}],182:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _libGame = require('./lib/game');
+
+var _libBoard = require('./lib/board');
+
+var _libConstants = require('./lib/constants');
+
+var _libConstants2 = _interopRequireDefault(_libConstants);
+
+exports['default'] = {
+    createGame: _libGame.createGame,
+    createBoard: _libBoard.createBoard,
+    EMPTY: _libConstants2['default'].EMPTY,
+    BLACK: _libConstants2['default'].BLACK,
+    WHITE: _libConstants2['default'].WHITE
+};
+module.exports = exports['default'];
+
+},{"./lib/board":183,"./lib/constants":184,"./lib/game":185}],183:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var _immutable = require("immutable");
+
+var _immutable2 = _interopRequireDefault(_immutable);
+
+var _util = require("./util");
+
+var _constants = require("./constants");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var IPoint = _immutable2["default"].Record({ i: 0, j: 0 });
+var IGroup = _immutable2["default"].Record({ stones: null, surrounding: null });
+
+var Point = (function (_IPoint) {
+    _inherits(Point, _IPoint);
+
+    function Point(i, j) {
+        _classCallCheck(this, Point);
+
+        _get(Object.getPrototypeOf(Point.prototype), "constructor", this).call(this, { i: i, j: j });
+    }
+
+    return Point;
+})(IPoint);
+
+var Group = (function (_IGroup) {
+    _inherits(Group, _IGroup);
+
+    function Group() {
+        _classCallCheck(this, Group);
+
+        _get(Object.getPrototypeOf(Group.prototype), "constructor", this).apply(this, arguments);
+    }
+
+    _createClass(Group, [{
+        key: "isDead",
+        value: function isDead() {
+            return this.getLiberties().isEmpty();
+        }
+    }, {
+        key: "getLiberties",
+        value: function getLiberties() {
+            return this.surrounding.filter(function (color) {
+                return color === _constants2["default"].EMPTY;
+            });
+        }
+    }]);
+
+    return Group;
+})(IGroup);
+
+var inBounds = function inBounds(size, point) {
+    return point.i >= 0 && point.i < size && point.j >= 0 && point.j < size;
+};
+
+var getStone = function getStone(stones, coords) {
+    return stones.get(coords, _constants2["default"].EMPTY);
+};
+
+var replaceStone = function replaceStone(stones, coords, value) {
+    if (value === _constants2["default"].EMPTY) return removeStone(coords);else return stones.set(coords, value);
+};
+
+var removeStone = function removeStone(stones, coords) {
+    return stones.remove(coords);
+};
+
+var deltas = _immutable2["default"].List.of(new Point(-1, 0), new Point(0, 1), new Point(1, 0), new Point(0, -1));
+
+/*
+ * Given a board position, returns a list of [i,j] coordinates representing
+ * orthogonally adjacent intersections
+ */
+var getAdjacentIntersections = function getAdjacentIntersections(size, coords) {
+    var addPair = function addPair(vec) {
+        return new Point(vec.i + coords.i, vec.j + coords.j);
+    };
+    return deltas.map(addPair).filter(function (coord) {
+        return inBounds(size, coord);
+    });
+};
+
+var allPositions = function allPositions(size) {
+    var range = _immutable2["default"].Range(0, size);
+    return range.flatMap(function (i) {
+        return range.map(function (j) {
+            return new Point(i, j);
+        });
+    });
+};
+
+/*
+ * Performs a breadth-first search about an (i,j) position to find recursively
+ * orthogonally adjacent stones of the same color (stones with which it shares
+ * liberties).
+ */
+var getGroup = function getGroup(stones, size, coords) {
+    var color = getStone(stones, coords);
+
+    var search = function search(_x4, _x5, _x6) {
+        var _again2 = true;
+
+        _function2: while (_again2) {
+            var visited = _x4,
+                queue = _x5,
+                surrounding = _x6;
+            stone = neighbors = undefined;
+            _again2 = false;
+
+            if (queue.isEmpty()) return { visited: visited, surrounding: surrounding };
+
+            var stone = queue.first();
+            queue = queue.shift();
+
+            if (visited.has(stone)) {
+                _x4 = visited;
+                _x5 = queue;
+                _x6 = surrounding;
+                _again2 = true;
+                continue _function2;
+            }
+
+            var neighbors = getAdjacentIntersections(size, stone);
+            neighbors.forEach(function (n) {
+                var state = getStone(stones, n);
+                if (state === color) queue = queue.push(n);else surrounding = surrounding.set(n, state);
+            });
+
+            visited = visited.add(stone);
+            _x4 = visited;
+            _x5 = queue;
+            _x6 = surrounding;
+            _again2 = true;
+            continue _function2;
+        }
+    };
+
+    var _search = search(_immutable2["default"].Set(), _immutable2["default"].List([coords]), _immutable2["default"].Map());
+
+    var visited = _search.visited;
+    var surrounding = _search.surrounding;
+
+    return new Group({
+        stones: visited,
+        surrounding: surrounding
+    });
+};
+
+var createEmptyGrid = (function () {
+    var createGrid = function createGrid(size) {
+        return _immutable2["default"].Repeat(_immutable2["default"].Repeat(_constants2["default"].EMPTY, size).toList(), size).toList();
+    };
+
+    var cache = {};
+    return function (size) {
+        return cache[size] || (cache[size] = createGrid(size));
+    };
+})();
+
+var Board = (function () {
+    function Board(size, stones) {
+        _classCallCheck(this, Board);
+
+        if (typeof size === "undefined" || size < 0) throw "Size must be an integer greater than zero";
+
+        if (typeof stones === "undefined") stones = _immutable2["default"].Map();
+
+        this.size = size;
+        this.stones = stones;
+    }
+
+    _createClass(Board, [{
+        key: "getSize",
+        value: function getSize() {
+            return this.size;
+        }
+    }, {
+        key: "toArray",
+        value: function toArray() {
+            return this.getIntersections().toJS();
+        }
+    }, {
+        key: "getIntersections",
+        value: function getIntersections() {
+            var _this = this;
+
+            var mergeStones = function mergeStones(map) {
+                return _this.stones.reduce(function (board, color, point) {
+                    return board.setIn([point.i, point.j], color);
+                }, map);
+            };
+            return createEmptyGrid(this.size).withMutations(mergeStones);
+        }
+    }, {
+        key: "play",
+        value: function play(color, coords) {
+            var _this2 = this;
+
+            coords = new Point(coords[0], coords[1]);
+
+            if (!inBounds(this.size, coords)) throw "Intersection out of bounds";
+
+            if (getStone(this.stones, coords) != _constants2["default"].EMPTY) throw "Intersection occupied by existing stone";
+
+            var newBoard = replaceStone(this.stones, coords, color);
+            var neighbors = getAdjacentIntersections(this.size, coords);
+            var neighborColors = _immutable2["default"].Map(neighbors.zipWith(function (n) {
+                return [n, getStone(newBoard, n)];
+            }));
+            var isOpponentColor = function isOpponentColor(stoneColor, _) {
+                return stoneColor === (0, _util.opponentColor)(color);
+            };
+            var captured = neighborColors.filter(isOpponentColor).map(function (val, coord) {
+                return getGroup(newBoard, _this2.size, coord);
+            }).valueSeq().filter(function (g) {
+                return g.isDead();
+            });
+
+            // detect suicide
+            var newGroup = getGroup(newBoard, this.size, coords);
+            if (captured.isEmpty() && newGroup.isDead()) captured = _immutable2["default"].List([newGroup]);
+
+            newBoard = captured.flatMap(function (g) {
+                return g.get("stones");
+            }).reduce(function (acc, stone) {
+                return removeStone(acc, stone);
+            }, newBoard);
+
+            return createBoard(this.size, newBoard);
+        }
+    }, {
+        key: "areaScore",
+        value: function areaScore() {
+            var _this3 = this;
+
+            var positions = allPositions(this.size);
+            var visited = _immutable2["default"].Set();
+            var score = {};
+            score[_constants2["default"].BLACK] = 0;
+            score[_constants2["default"].WHITE] = 0;
+
+            positions.forEach(function (coords) {
+                if (visited.has(coords)) return;
+
+                var state = getStone(_this3.stones, coords);
+                var group = getGroup(_this3.stones, _this3.size, coords);
+                var groupStones = group.get("stones");
+                var surroundingColors = group.get("surrounding").valueSeq().toSet();
+
+                if (state === _constants2["default"].EMPTY && surroundingColors.size === 1) score[surroundingColors.first()] += groupStones.size;else score[state] += groupStones.size;
+
+                visited = visited.union(groupStones);
+            });
+
+            return score;
+        }
+    }]);
+
+    return Board;
+})();
+
+var createBoard = function createBoard(size, stones) {
+    return new Board(size, stones);
+};
+exports.createBoard = createBoard;
+
+},{"./constants":184,"./util":186,"immutable":2}],184:[function(require,module,exports){
+/*
+ * Constants for intersection states
+ */
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports["default"] = {
+    EMPTY: ".",
+    BLACK: "x",
+    WHITE: "o"
+};
+module.exports = exports["default"];
+
+},{}],185:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var _immutable = require("immutable");
+
+var _immutable2 = _interopRequireDefault(_immutable);
+
+var _board = require("./board");
+
+var _util = require("./util");
+
+var _constants = require("./constants");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var Game = (function () {
+    function Game(boardSize, values) {
+        _classCallCheck(this, Game);
+
+        if (typeof values !== "undefined") {
+            this.currentColor = values.currentColor;
+            this.consecutivePasses = values.consecutivePasses;
+            this.history = values.history;
+            this.board = values.board;
+        } else {
+            this.currentColor = _constants2["default"].BLACK;
+            this.consecutivePasses = 0;
+            this.board = (0, _board.createBoard)(boardSize);
+            this.history = _immutable2["default"].Set([this.board.stones]);
+            this.boardSize = boardSize;
+        }
+    }
+
+    _createClass(Game, [{
+        key: "isOver",
+        value: function isOver() {
+            return this.consecutivePasses >= 2;
+        }
+    }, {
+        key: "getCurrentPlayer",
+        value: function getCurrentPlayer() {
+            return this.currentColor;
+        }
+    }, {
+        key: "getBoard",
+        value: function getBoard() {
+            return this.board;
+        }
+    }, {
+        key: "play",
+        value: function play(player, coords) {
+            var _this = this;
+
+            var inHistory = function inHistory(otherBoard) {
+                return _this.history.has(otherBoard.stones);
+            };
+
+            if (this.isOver()) throw "Game is already over";
+
+            if (player != this.currentColor) throw "Not player's turn";
+
+            var newBoard = this.board.play(this.currentColor, coords);
+
+            if (inHistory(newBoard)) throw "Violation of Ko";
+
+            return createGame(this.boardSize, {
+                currentColor: (0, _util.opponentColor)(this.currentColor),
+                consecutivePasses: 0,
+                board: newBoard,
+                history: this.history.add(newBoard.stones)
+            });
+        }
+    }, {
+        key: "pass",
+        value: function pass(player) {
+            if (this.isOver()) throw "Game is already over";
+
+            if (player != this.currentColor) throw "Not player's turn";
+
+            return createGame(this.boardSize, {
+                currentColor: (0, _util.opponentColor)(this.currentColor),
+                consecutivePasses: this.consecutivePasses + 1,
+                board: this.board,
+                history: this.history
+            });
+        }
+
+        /*
+         * Returns Black - White
+         */
+    }, {
+        key: "areaScore",
+        value: function areaScore(komi) {
+            if (typeof komi === "undefined") komi = 0.0;
+
+            var boardScore = this.board.areaScore();
+            return boardScore[_constants2["default"].BLACK] - (boardScore[_constants2["default"].WHITE] + komi);
+        }
+    }]);
+
+    return Game;
+})();
+
+var createGame = function createGame(boardSize, values) {
+    return new Game(boardSize, values);
+};
+exports.createGame = createGame;
+
+},{"./board":183,"./constants":184,"./util":186,"immutable":2}],186:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+var _constants = require("./constants");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var opponentColor = function opponentColor(color) {
+    return color == _constants2["default"].BLACK ? _constants2["default"].WHITE : _constants2["default"].BLACK;
+};
+exports.opponentColor = opponentColor;
+
+},{"./constants":184}]},{},[178])

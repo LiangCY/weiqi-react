@@ -1,5 +1,5 @@
 var React = require('react');
-var Weiqi = require('weiqi');
+var Weiqi = require('../../weiqi/dist');
 
 var width = 48;
 
