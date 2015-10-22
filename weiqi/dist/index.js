@@ -14,9 +14,12 @@ var _libConstants = require('./lib/constants');
 
 var _libConstants2 = _interopRequireDefault(_libConstants);
 
+var _libUtil = require("./lib/util");
+
 exports['default'] = {
     createGame: _libGame.createGame,
     createBoard: _libBoard.createBoard,
+    opponentColor: _libUtil.opponentColor,
     EMPTY: _libConstants2['default'].EMPTY,
     BLACK: _libConstants2['default'].BLACK,
     WHITE: _libConstants2['default'].WHITE

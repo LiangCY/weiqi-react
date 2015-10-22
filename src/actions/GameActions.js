@@ -1,7 +1,8 @@
 var Reflux = require('reflux');
 
 var GameActions = Reflux.createActions([
-    "play"
+    "play",
+    "revert"
 ]);
 
 module.exports = GameActions;

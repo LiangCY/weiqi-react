@@ -10,11 +10,12 @@ class Game {
             this.consecutivePasses = values.consecutivePasses;
             this.history = values.history;
             this.board = values.board;
+            this.boardSize = boardSize;
         } else {
             this.currentColor = Constants.BLACK;
             this.consecutivePasses = 0;
             this.board = createBoard(boardSize);
-            this.history = Immutable.Set([this.board.stones]);
+            this.history = Immutable.List([this.board.stones]);
             this.boardSize = boardSize;
         }
     }
@@ -32,7 +33,8 @@ class Game {
     }
 
     play(player, coords) {
-        const inHistory = (otherBoard) => this.history.has(otherBoard.stones);
+
+        const inHistory = (otherBoard) => this.history.includes(otherBoard.stones);
 
         if (this.isOver())
             throw "Game is already over";
@@ -49,9 +51,24 @@ class Game {
             currentColor: opponentColor(this.currentColor),
             consecutivePasses: 0,
             board: newBoard,
-            history: this.history.add(newBoard.stones)
+            history: this.history.push(newBoard.stones)
         });
 
+    }
+
+    revert(player) {
+
+        if (this.history.size < 2)
+            throw "Game is not started";
+
+        const history = this.history.pop();
+
+        return createGame(this.boardSize, {
+            currentColor: player,
+            consecutivePasses: 0,
+            board: createBoard(this.boardSize, history.last()),
+            history: history
+        });
     }
 
     pass(player) {

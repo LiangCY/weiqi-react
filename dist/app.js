@@ -26383,7 +26383,8 @@ module.exports = function(listenables){
 var Reflux = require('reflux');
 
 var GameActions = Reflux.createActions([
-    "play"
+    "play",
+    "revert"
 ]);
 
 module.exports = GameActions;
@@ -26396,9 +26397,12 @@ React.render(React.createElement(GameApp, null), document.body);
 
 },{"./components/GameApp.jsx":179,"react":157}],179:[function(require,module,exports){
 var React = require('react');
+var Constants = require('../constants');
 var Grid = require('./Grid.jsx');
 var GameStore = require('../stores/GameStore');
 var GameActions = require('../actions/GameActions');
+
+var width = Constants.GRID_WIDTH;
 
 var GameApp = React.createClass({displayName: "GameApp",
 
@@ -26424,6 +26428,10 @@ var GameApp = React.createClass({displayName: "GameApp",
         GameActions.play(position);
     },
 
+    handleRevert: function () {
+        GameActions.revert();
+    },
+
     render: function () {
         var board = this.state.board;
         var grids = [];
@@ -26437,7 +26445,19 @@ var GameApp = React.createClass({displayName: "GameApp",
         });
         return (
             React.createElement("div", null, 
-                grids
+                React.createElement("div", {style: {
+                position:'relative',
+                width:this.state.board.length*width,
+                height:this.state.board.length*width,
+                float:'left'
+                }}, 
+                    grids
+                ), 
+                React.createElement("button", {className: "ui blue button", 
+                        style: {marginLeft:'20px',marginTop:width/2}, 
+                        onClick: this.handleRevert}, 
+                    "REVERT"
+                )
             )
         )
     }
@@ -26445,11 +26465,12 @@ var GameApp = React.createClass({displayName: "GameApp",
 
 module.exports = GameApp;
 
-},{"../actions/GameActions":177,"../stores/GameStore":181,"./Grid.jsx":180,"react":157}],180:[function(require,module,exports){
+},{"../actions/GameActions":177,"../constants":181,"../stores/GameStore":182,"./Grid.jsx":180,"react":157}],180:[function(require,module,exports){
 var React = require('react');
 var Weiqi = require('../../weiqi/dist');
+var Constants = require('../constants');
 
-var width = 48;
+var width = Constants.GRID_WIDTH;
 
 var Grid = React.createClass({displayName: "Grid",
 
@@ -26559,22 +26580,37 @@ var Grid = React.createClass({displayName: "Grid",
 
 module.exports = Grid;
 
-},{"../../weiqi/dist":182,"react":157}],181:[function(require,module,exports){
+},{"../../weiqi/dist":183,"../constants":181,"react":157}],181:[function(require,module,exports){
+module.exports =  {
+    GRID_WIDTH: 48
+};
+
+
+},{}],182:[function(require,module,exports){
 var Reflux = require('reflux');
 var Weiqi = require('../../weiqi/dist');
+var Constants = require('../constants');
 var GameActions = require('../actions/GameActions');
 
-var game = Weiqi.createGame(19);
+var game;
 
 var GameStore = Reflux.createStore({
 
     init: function () {
+        game = Weiqi.createGame(19);
         this.listenTo(GameActions.play, this.play);
+        this.listenTo(GameActions.revert, this.revert);
     },
 
     play: function (position) {
         var player = game.getCurrentPlayer();
         game = game.play(player, position);
+        this.trigger(game.getBoard().toArray());
+    },
+
+    revert: function () {
+        var player = game.getCurrentPlayer();
+        game = game.revert(Weiqi.opponentColor(player));
         this.trigger(game.getBoard().toArray());
     },
 
@@ -26587,7 +26623,7 @@ module.exports = GameStore;
 
 
 
-},{"../../weiqi/dist":182,"../actions/GameActions":177,"reflux":174}],182:[function(require,module,exports){
+},{"../../weiqi/dist":183,"../actions/GameActions":177,"../constants":181,"reflux":174}],183:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -26604,16 +26640,19 @@ var _libConstants = require('./lib/constants');
 
 var _libConstants2 = _interopRequireDefault(_libConstants);
 
+var _libUtil = require("./lib/util");
+
 exports['default'] = {
     createGame: _libGame.createGame,
     createBoard: _libBoard.createBoard,
+    opponentColor: _libUtil.opponentColor,
     EMPTY: _libConstants2['default'].EMPTY,
     BLACK: _libConstants2['default'].BLACK,
     WHITE: _libConstants2['default'].WHITE
 };
 module.exports = exports['default'];
 
-},{"./lib/board":183,"./lib/constants":184,"./lib/game":185}],183:[function(require,module,exports){
+},{"./lib/board":184,"./lib/constants":185,"./lib/game":186,"./lib/util":187}],184:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -26896,7 +26935,7 @@ var createBoard = function createBoard(size, stones) {
 };
 exports.createBoard = createBoard;
 
-},{"./constants":184,"./util":186,"immutable":2}],184:[function(require,module,exports){
+},{"./constants":185,"./util":187,"immutable":2}],185:[function(require,module,exports){
 /*
  * Constants for intersection states
  */
@@ -26912,7 +26951,7 @@ exports["default"] = {
 };
 module.exports = exports["default"];
 
-},{}],185:[function(require,module,exports){
+},{}],186:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -26946,11 +26985,12 @@ var Game = (function () {
             this.consecutivePasses = values.consecutivePasses;
             this.history = values.history;
             this.board = values.board;
+            this.boardSize = boardSize;
         } else {
             this.currentColor = _constants2["default"].BLACK;
             this.consecutivePasses = 0;
             this.board = (0, _board.createBoard)(boardSize);
-            this.history = _immutable2["default"].Set([this.board.stones]);
+            this.history = _immutable2["default"].List([this.board.stones]);
             this.boardSize = boardSize;
         }
     }
@@ -26976,7 +27016,7 @@ var Game = (function () {
             var _this = this;
 
             var inHistory = function inHistory(otherBoard) {
-                return _this.history.has(otherBoard.stones);
+                return _this.history.includes(otherBoard.stones);
             };
 
             if (this.isOver()) throw "Game is already over";
@@ -26991,7 +27031,22 @@ var Game = (function () {
                 currentColor: (0, _util.opponentColor)(this.currentColor),
                 consecutivePasses: 0,
                 board: newBoard,
-                history: this.history.add(newBoard.stones)
+                history: this.history.push(newBoard.stones)
+            });
+        }
+    }, {
+        key: "revert",
+        value: function revert(player) {
+
+            if (this.history.size < 2) throw "Game is not started";
+
+            var history = this.history.pop();
+
+            return createGame(this.boardSize, {
+                currentColor: player,
+                consecutivePasses: 0,
+                board: (0, _board.createBoard)(this.boardSize, history.last()),
+                history: history
             });
         }
     }, {
@@ -27030,7 +27085,7 @@ var createGame = function createGame(boardSize, values) {
 };
 exports.createGame = createGame;
 
-},{"./board":183,"./constants":184,"./util":186,"immutable":2}],186:[function(require,module,exports){
+},{"./board":184,"./constants":185,"./util":187,"immutable":2}],187:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -27048,4 +27103,4 @@ var opponentColor = function opponentColor(color) {
 };
 exports.opponentColor = opponentColor;
 
-},{"./constants":184}]},{},[178])
+},{"./constants":185}]},{},[178])

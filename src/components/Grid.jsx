@@ -1,7 +1,8 @@
 var React = require('react');
 var Weiqi = require('../../weiqi/dist');
+var Constants = require('../constants');
 
-var width = 48;
+var width = Constants.GRID_WIDTH;
 
 var Grid = React.createClass({
 

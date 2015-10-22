@@ -31,11 +31,12 @@ var Game = (function () {
             this.consecutivePasses = values.consecutivePasses;
             this.history = values.history;
             this.board = values.board;
+            this.boardSize = boardSize;
         } else {
             this.currentColor = _constants2["default"].BLACK;
             this.consecutivePasses = 0;
             this.board = (0, _board.createBoard)(boardSize);
-            this.history = _immutable2["default"].Set([this.board.stones]);
+            this.history = _immutable2["default"].List([this.board.stones]);
             this.boardSize = boardSize;
         }
     }
@@ -61,7 +62,7 @@ var Game = (function () {
             var _this = this;
 
             var inHistory = function inHistory(otherBoard) {
-                return _this.history.has(otherBoard.stones);
+                return _this.history.includes(otherBoard.stones);
             };
 
             if (this.isOver()) throw "Game is already over";
@@ -76,7 +77,22 @@ var Game = (function () {
                 currentColor: (0, _util.opponentColor)(this.currentColor),
                 consecutivePasses: 0,
                 board: newBoard,
-                history: this.history.add(newBoard.stones)
+                history: this.history.push(newBoard.stones)
+            });
+        }
+    }, {
+        key: "revert",
+        value: function revert(player) {
+
+            if (this.history.size < 2) throw "Game is not started";
+
+            var history = this.history.pop();
+
+            return createGame(this.boardSize, {
+                currentColor: player,
+                consecutivePasses: 0,
+                board: (0, _board.createBoard)(this.boardSize, history.last()),
+                history: history
             });
         }
     }, {
